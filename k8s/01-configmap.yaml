@@ -1,0 +1,55 @@
+---
+# ConfigMap for SmartCart application configuration
+# Stores non-sensitive configuration data
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smartcart-config
+  namespace: smartcart
+  labels:
+    app: smartcart
+    component: config
+data:
+  DEBUG: "False"
+  ENVIRONMENT: "production"
+  TIMEZONE: "UTC"
+  
+  # Django Settings
+  ALLOWED_HOSTS: "smartcart.example.com,localhost,127.0.0.1"
+  
+  # Database Configuration
+  DATABASE_ENGINE: "django.db.backends.postgresql"
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "smartcart_db"
+  
+  # Redis Configuration
+  REDIS_URL: "redis://redis-service:6379/0"
+  CACHE_URL: "redis://redis-service:6379/1"
+  
+  # Celery Configuration
+  CELERY_BROKER_URL: "redis://redis-service:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis-service:6379/0"
+  CELERY_ACCEPT_CONTENT: "json"
+  CELERY_TASK_SERIALIZER: "json"
+  CELERY_RESULT_SERIALIZER: "json"
+  
+  # Email Configuration
+  EMAIL_BACKEND: "django.core.mail.backends.smtp.EmailBackend"
+  EMAIL_HOST: "smtp.gmail.com"
+  EMAIL_PORT: "587"
+  EMAIL_USE_TLS: "True"
+  DEFAULT_FROM_EMAIL: "noreply@smartcart.com"
+  
+  # API Settings
+  API_RATE_LIMIT: "100/h"
+  API_PAGINATION_SIZE: "20"
+  
+  # Logging
+  LOG_LEVEL: "INFO"
+  
+  # Session and CSRF
+  SESSION_COOKIE_SECURE: "True"
+  SESSION_COOKIE_HTTPONLY: "True"
+  CSRF_COOKIE_SECURE: "True"
+  CSRF_COOKIE_HTTPONLY: "True"

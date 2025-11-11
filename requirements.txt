@@ -1,0 +1,10 @@
+Django
+djangorestframework
+djangorestframework-simplejwt
+psycopg2-binary
+python-decouple
+django-cors-headers
+requests
+sendgrid
+Pillow
+drf-spectacular

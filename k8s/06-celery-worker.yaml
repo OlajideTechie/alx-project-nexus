@@ -1,0 +1,211 @@
+---
+# Celery Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: smartcart
+  labels:
+    app: celery-worker
+    component: worker
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+        component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: celery-worker-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      containers:
+      - name: celery-worker
+        image: smartcart:latest
+        imagePullPolicy: Always
+        command:
+          - celery
+          - -A
+          - SwiftCart
+          - worker
+          - -l
+          - info
+          - --concurrency=4
+          - --max-tasks-per-child=1000
+          - --time-limit=3600
+          - --soft-time-limit=3000
+        
+        env:
+        # Django Configuration
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: DEBUG
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: smartcart-secret
+              key: SECRET_KEY
+        
+        # Database Configuration
+        - name: DATABASE_ENGINE
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: DATABASE_ENGINE
+        - name: DATABASE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: DATABASE_HOST
+        - name: DATABASE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: DATABASE_PORT
+        - name: DATABASE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: DATABASE_NAME
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: smartcart-secret
+              key: DATABASE_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: smartcart-secret
+              key: DATABASE_PASSWORD
+        
+        # Celery Configuration
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: CELERY_BROKER_URL
+        - name: CELERY_RESULT_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: CELERY_RESULT_BACKEND
+        - name: CELERY_ACCEPT_CONTENT
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: CELERY_ACCEPT_CONTENT
+        - name: CELERY_TASK_SERIALIZER
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: CELERY_TASK_SERIALIZER
+        
+        # Email Configuration
+        - name: EMAIL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: EMAIL_HOST
+        - name: EMAIL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: EMAIL_PORT
+        - name: EMAIL_USE_TLS
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: EMAIL_USE_TLS
+        - name: EMAIL_HOST_USER
+          valueFrom:
+            secretKeyRef:
+              name: smartcart-secret
+              key: EMAIL_HOST_USER
+        - name: EMAIL_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: smartcart-secret
+              key: EMAIL_HOST_PASSWORD
+        
+        # Payment Gateway
+        - name: PAYSTACK_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: smartcart-secret
+              key: PAYSTACK_PUBLIC_KEY
+        - name: PAYSTACK_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: smartcart-secret
+              key: PAYSTACK_SECRET_KEY
+        
+        # Logging
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: smartcart-config
+              key: LOG_LEVEL
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+              - ALL
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - celery-worker
+              topologyKey: kubernetes.io/hostname
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - redis
+              topologyKey: kubernetes.io/hostname
+
+---
+# Service Account for Celery Workers
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: celery-worker-sa
+  namespace: smartcart
+  labels:
+    app: celery-worker
