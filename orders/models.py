@@ -55,7 +55,7 @@ class Order(models.Model):
             # Generate unique order number
             import random
             import string
-            self.order_number = 'ORD-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            self.order_number = 'ORD-SWC-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         super().save(*args, **kwargs)
 
 

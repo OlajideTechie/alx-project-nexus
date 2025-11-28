@@ -8,3 +8,9 @@ requests
 sendgrid
 Pillow
 drf-spectacular
+celery
+PyJWT
+pip
+pytest
+whitenoise
+gunicorn
