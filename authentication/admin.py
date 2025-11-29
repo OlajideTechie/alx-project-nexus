@@ -5,8 +5,8 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('email', 'username', 'first_name', 'last_name', 'is_verified', 'is_staff', 'created_at')
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_verified', 'created_at')
+    list_display = ('email', 'username', 'first_name', 'last_name', 'is_staff', 'created_at')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'created_at')
     search_fields = ('email', 'username', 'first_name', 'last_name')
     ordering = ('-created_at',)
     
@@ -14,7 +14,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {'fields': ('email', 'username', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone_number', 'date_of_birth')}),
         ('Address', {'fields': ('address', 'city', 'state', 'country', 'postal_code')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'is_verified', 'groups', 'user_permissions')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
     

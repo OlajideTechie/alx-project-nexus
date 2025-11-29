@@ -13,16 +13,25 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
+from dotenv import load_dotenv
+import dj_database_url 
+import os
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+
+# Load .env file
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-yadi85b-r$&xc8!t2^mjx#ju5yzrmhb&j%+b8$xa50nnn%yobu')
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -59,6 +68,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -88,19 +98,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'SwiftCart.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='swiftcart_db'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
+# Database Settings
+if os.getenv("DATABASE_URL"):
+    # Production (Render, Heroku, etc)
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
+else:
+    # Local development - SQLite
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
+    }
 
 
 # Password validation
@@ -164,10 +179,11 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('ACCESS_TOKEN_LIFETIME', default=60, cast=int)),
-    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=config('REFRESH_TOKEN_LIFETIME', default=1440, cast=int)),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'ALGORITHM': 'HS256',
@@ -181,7 +197,6 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Paystack Settings
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
-PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
 
 # SendGrid Settings
 SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='')
@@ -199,10 +214,82 @@ DEFAULT_FROM_EMAIL = FROM_EMAIL
 # Frontend URL
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
-# API Documentation
+
+#  API Documentation Settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'SwiftCart API',
-    'DESCRIPTION': 'E-commerce backend API with authentication, products, cart, orders, and payments',
+    'TITLE': 'SwiftCart E-Commerce Backend API Service',
+    'DESCRIPTION': 'E-commerce backend service with authentication, products, cart, orders, and payments',
     'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
+    'SERVE_INCLUDE_SCHEMA': True,
+    'COMPONENT_SPLIT': True,
+
+    "SECURITY": [{"jwtAuth": []}],
+
+    "COMPONENT_SPLIT_REQUEST": True,
+
+     'ENUM_NAME_OVERRIDES': {
+         
+    },
+
+    "COMPONENTS": {
+        "securitySchemes": {
+            "jwtAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+    },
+}
+
+
+# Logs 
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'swiftcart.log'),
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'error_file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'swiftcart_errors.log'),
+            'formatter': 'verbose',
+            'level': 'ERROR',
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'upload': {
+            'handlers': ['console', 'error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        # Add other app loggers here
+    },
 }

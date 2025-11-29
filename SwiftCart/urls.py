@@ -24,15 +24,17 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # API Documentation
+    path('', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-root'),
+    
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     
     # App URLs
     path('api/auth/', include('authentication.urls')),
-    path('api/products/', include('products.urls')),
-    path('api/cart/', include('cart.urls')),
-    path('api/orders/', include('orders.urls')),
-    path('api/payments/', include('payments.urls')),
+    # path('api/products/', include('products.urls')),
+    # path('api/cart/', include('cart.urls')),
+    # path('api/orders/', include('orders.urls')),
+    # path('api/payments/', include('payments.urls')),
 ]
 
 # Serve media files in development
