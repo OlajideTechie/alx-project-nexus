@@ -1,2 +1,2 @@
 release: python manage.py migrate
-web: gunicorn SwiftCart.wsgi --log-file -
+web: gunicorn SwiftCart.wsgi --bind 0.0.0.0:$PORT --log-file -
