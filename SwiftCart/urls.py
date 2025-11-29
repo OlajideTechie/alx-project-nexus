@@ -32,7 +32,7 @@ urlpatterns = [
     
     # App URLs
     path('api/auth/', include('authentication.urls')),
-    # path('api/products/', include('products.urls')),
+    path('api/products/', include('products.urls')),
     # path('api/cart/', include('cart.urls')),
     # path('api/orders/', include('orders.urls')),
     # path('api/payments/', include('payments.urls')),
