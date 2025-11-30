@@ -7,12 +7,15 @@ from django.db import transaction
 from .models import Order, OrderItem
 from cart.models import Cart
 from .serializers import OrderSerializer, OrderCreateSerializer
+from drf_spectacular.utils import extend_schema
 
 
+@extend_schema(tags=['Orders'],)
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
     
+    """Ensures users only see their own orders."""
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).prefetch_related('items')
     
@@ -33,8 +36,8 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         with transaction.atomic():
             # Calculate totals
             subtotal = cart.subtotal
-            shipping_cost = 0  # You can implement shipping calculation logic
-            tax = subtotal * 0.10  # 10% tax (customize as needed)
+            shipping_cost = 0 
+            tax = subtotal * 0.10
             total = subtotal + shipping_cost + tax
             
             # Create order
