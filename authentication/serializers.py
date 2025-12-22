@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 User = get_user_model()
 
-
+# Serializer for user registration with detailed validations, including password strength
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True, required=True)
@@ -105,24 +105,24 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+# Login serializer for user authentication, checking email and password fields if provided and valid
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'username',)
+        fields = ('id', 'email', 'username')
         read_only_fields = ('id', 'expires_at')
 
 
-
+# User serializer for retrieving user details after authentication if the user is authenticated and exists
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'username')
+        fields = ('id', 'email', 'username', 'first_name', 'last_name')
         read_only_fields = ('id', 'created_at', 'updated_at')
-
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
