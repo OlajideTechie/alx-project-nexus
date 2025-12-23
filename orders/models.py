@@ -73,6 +73,7 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     # Link to the Order using a string reference to avoid circular imports
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, related_name='items')
 
     product = models.ForeignKey('products.Product', on_delete=models.PROTECT, null=True, blank=True)
