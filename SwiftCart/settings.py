@@ -244,7 +244,6 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-
 # Logs 
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -295,3 +294,6 @@ LOGGING = {
         # Add other app loggers here
     },
 }
+
+# Admin Bootstrap Setting
+ALLOW_ADMIN_BOOTSTRAP = True

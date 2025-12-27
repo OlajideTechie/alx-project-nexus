@@ -8,7 +8,7 @@ from authentication.models import User
 from products.models import Product
 from orders.models import Order, OrderItem
 
-@extend_schema(tags=["Analytics"])
+@extend_schema(tags=["Admin Management"])
 class AdminDashboardAnalyticsView(APIView):
     permission_classes = [IsAdminUser]
 
