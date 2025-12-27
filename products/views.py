@@ -1,10 +1,16 @@
 from rest_framework import generics, permissions, filters, status
+
+from authentication.models import User
 from .models import Product, Category
-from .serializers import ProductSerializer, CategorySerializer
+from .serializers.serializers import ProductSerializer, CategorySerializer, AdminProductSerializer
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from common.permissions import IsAdmin
+from django.conf import settings
+from rest_framework.decorators import action
+from rest_framework import viewsets
 
 
 @extend_schema(tags=["Products"])
@@ -47,25 +53,62 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ["PUT", "PATCH", "DELETE"]:
             return [IsAdminUser()]
         return [IsAuthenticatedOrReadOnly()]
+    
 
+@extend_schema(tags=["Admin Management"])
+class AdminProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = AdminProductSerializer
+    permission_classes = [IsAdmin]
 
-@extend_schema(tags=["Products"])
-class ProductPublishToggleView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    @action(detail=True, methods=["post"])
+    def publish(self, request, pk=None):
+        product = self.get_object()
+        product.is_published = True
+        product.save()
+        return Response({"message": "Product published"})
 
-    def post(self, request, pk):
-        try:
-            product = Product.objects.get(pk=pk)
-        except Product.DoesNotExist:
-            return Response({"detail": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+    @action(detail=True, methods=["post"])
+    def unpublish(self, request, pk=None):
+        product = self.get_object()
+        product.is_published = False
+        product.save()
+        return Response({"message": "Product unpublished"})
 
-        product.is_published = not product.is_published
-        product.save(update_fields=["is_published"])
+    @action(detail=False, methods=["post"])
+    def seed(self, request):
+        # Seed the database with initial product data in an array format
+        initial_data = [
+            {
+                "name": "Product 1",
+                "description": "Description for Product 1",
+                "price": 100.00,
+                "category": "55bbebbfd5c14a3aac5b0680a5738469",
+                "brand": "Br",
+                "in_stock": 20,
+                "is_published": True
+            },
+            {
+                "name": "Product 2",
+                "description": "Description for Product 2",
+                "price": 150.00,
+                "category": "55bbebbfd5c14a3aac5b0680a5738469",
+                "brand": "Brand 2",
+                "in_stock": 10,
+                "is_published": True
+            },
+            {
+                "name": "Product 3",
+                "description": "Description for Product 3",
+                "price": 200.00,
+                "category": "55bbebbfd5c14a3aac5b0680a5738469",
+                "brand": "Brand 3",
+                "in_stock": 5,
+                "is_published": True
+            }
+        ]
 
-        state = "published" if product.is_published else "unpublished"
-
-        return Response({
-            "message": f"Product has been {state} successfully.",
-            "product_id": str(product.id),
-            "is_published": product.is_published
-        })
+        serializer = self.get_serializer(data=initial_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Products seeded successfully"}, status=201)

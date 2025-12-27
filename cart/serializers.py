@@ -3,7 +3,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from .models import Cart, CartItem
-from products.serializers import ProductSerializer
+from products.serializers.serializers import ProductSerializer
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -26,7 +26,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         Returns line total as a string with 2 decimal places (common for money)
         """
         total = obj.quantity * obj.product.price
-        return f"{total:.2f}"  # or just return total if price is Decimal
+        return f"{total:.2f}"  # return total if price is Decimal
 
 
 class CartSerializer(serializers.ModelSerializer):
