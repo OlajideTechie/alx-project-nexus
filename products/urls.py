@@ -15,5 +15,4 @@ urlpatterns = [
     path('admin-products/seed', AdminProductViewSet.as_view({'post': 'seed'}), name="seed-admin-products"),
     path('admin-products/<uuid:pk>/publish', AdminProductViewSet.as_view({'post': 'publish'}), name="admin-publish-product"),
     path('admin-products/<uuid:pk>/unpublish', AdminProductViewSet.as_view({'post': 'unpublish'}), name="admin-unpublish-product"),
-
 ]
