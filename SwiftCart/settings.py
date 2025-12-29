@@ -294,6 +294,3 @@ LOGGING = {
         # Add other app loggers here
     },
 }
-
-# Admin Bootstrap Setting
-ALLOW_ADMIN_BOOTSTRAP = True
