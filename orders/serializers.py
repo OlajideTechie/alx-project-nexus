@@ -1,56 +1,51 @@
 from rest_framework import serializers
 from .models import Order, OrderItem
-from products.models import Product
-from .services import OrderService
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
-        fields = ['id', 'product_name', 'price', 'quantity', 'replace_product_sku', 'replace_notes']
-        read_only_fields = ['id', 'product_name', 'price']
+        fields = [
+            "product_name",
+            "unit_price",
+            "quantity"
+        ]
 
-class OrderCreateItemSerializer(serializers.Serializer):
-    product_id = serializers.UUIDField()
-    quantity = serializers.IntegerField(min_value=1)
-    replace_product_sku = serializers.CharField(required=False, allow_blank=True)
-    replace_notes = serializers.CharField(required=False, allow_blank=True)
+        read_only_fields = ["product_name", "unit_price", "line_total"]
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-    payment_status = serializers.ReadOnlyField()
 
     class Meta:
         model = Order
         fields = [
-            'id', 'order_number', 'status', 'payment_status',
-            'shipping_address', 'shipping_city', 'shipping_state',
-            'shipping_country', 'shipping_postal_code', 'phone_number',
-            'subtotal', 'shipping_cost', 'tax', 'total',
-            'notes', 'items', 'created_at'
+            "id",
+            "order_number",
+            "tax",
+            "shipping_address",
+            "payment_status",
+            "status",
+            "phone_number",
+            "items",
+            "price_locked_until",
+            "subtotal",
+            "total_amount",
+            "created_at"
         ]
-        read_only_fields = ['id', 'order_number', 'status', 'created_at', 'subtotal', 'total']
-
-class OrderCreateSerializer(serializers.ModelSerializer):
-    items = OrderCreateItemSerializer(many=True)
-
-    class Meta:
-        model = Order
-        fields = [
-            'shipping_address', 'shipping_city', 'shipping_state',
-            'shipping_country', 'shipping_postal_code', 'phone_number',
-            'notes', 'items'
+        read_only_fields = [
+            "id",
+            "order_number",
+            "tax",
+            "total",
+            "status",
+            "created_at",
+            "items",
+            "price_locked_until"
         ]
-
-    def validate(self, attrs):
-        if not attrs.get('items'):
-            raise serializers.ValidationError("Order must contain at least one item.")
-        return attrs
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        service = OrderService(user=user, order_data=validated_data)
-        try:
-            order = service.create_order()
-        except ValueError as e:
-            raise serializers.ValidationError({"items": e.args[0]})
-        return order
+        def get_is_price_lock_active(self, obj):
+            return obj.is_price_lock_active()
+        
+# Serializer for order creation input
+class CreateOrderSerializer(serializers.Serializer):
+    shipping_address = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True)

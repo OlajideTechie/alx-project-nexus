@@ -29,9 +29,26 @@ class Product(models.Model):
     rating = models.FloatField(default=0)
     total_views = models.IntegerField(default=0)
 
+    flash_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    flash_sale_ends_at = models.DateTimeField(blank=True, null=True)
+
     is_published = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def final_price(self):
+        """Return the final price considering flash sale"""
+        from django.utils import timezone
+
+        # Check if flash sale is active
+        if (
+            self.flash_price is not None and
+            self.flash_sale_ends_at is not None and
+            timezone.now() < self.flash_sale_ends_at
+        ):
+            return self.flash_price
+        return self.price
 
     class Meta:
         ordering = ['-created_at']

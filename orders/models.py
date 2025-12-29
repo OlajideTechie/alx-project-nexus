@@ -1,95 +1,106 @@
-from django.db import models
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from decimal import Decimal, ROUND_HALF_UP
-from django.db import models, transaction
 import uuid
-
-
-# Money helper
-def quantize_money(value):
-    return (Decimal(value) or Decimal('0')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 class Order(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('shipped', 'Shipped'),
-        ('delivered', 'Delivered'),
-        ('cancelled', 'Cancelled'),
-    ]
-    
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PAID = "paid", "Paid"
+        PROCESSING = "processing", "Processing"
+        SHIPPED = "shipped", "Shipped"
+        DELIVERED = "delivered", "Delivered"
+        CANCELLED = "cancelled", "Cancelled"
+        EXPIRED = "expired", "Expired"
+
+    class PaymentStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SUCCESS = "success", "Success"
+        FAILED = "failed", "Failed"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
 
-    order_number = models.CharField(max_length=100, unique=True, editable=False)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT, # Prevent deletion if user has orders
+        related_name="orders"
+    )
 
-    # Shipping
-    shipping_address = models.TextField()
-    shipping_city = models.CharField(max_length=100)
-    shipping_state = models.CharField(max_length=100)
-    shipping_country = models.CharField(max_length=100)
-    shipping_postal_code = models.CharField(max_length=20)
-    phone_number = models.CharField(max_length=20)
+    order_number = models.CharField(max_length=32, unique=True, db_index=True)
 
-    # Pricing
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
-    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
 
-    notes = models.TextField(blank=True)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING
+    )
+
+    # ---- Price snapshot totals ----
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2) # Sum of item prices before tax and shipping
+    tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    shipping_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0) # Final amount charged
+
+    # ----- Shipping info (snapshot) -----
+    shipping_address = models.TextField(max_length=500, default='123, Main Street, City, Country')
+    phone_number = models.CharField(max_length=20, default='234567890')
+
+    # ---- Price lock window ----
+    price_locked_until = models.DateTimeField(null=True, blank=True)
+
+    # ---- Audit ----
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'orders'
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["order_number"]),
+            models.Index(fields=["status", "payment_status"]),
+        ]
 
+    # String representation, price lock methods
     def __str__(self):
         return f"Order {self.order_number}"
 
-    def save(self, *args, **kwargs):
-        if not self.order_number:
-            import random, string
-            self.order_number = 'ORD-SWC-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-        super().save(*args, **kwargs)
-
-    @property
-    def payment_status(self):
-        """Returns the status of the most recent payment."""
-        latest_payment = self.payments.order_by('-created_at').first()
-        return latest_payment.status if latest_payment else 'No Payment'
-    
-
-    def calculate_totals(self):
-        subtotal = sum([item.get_subtotal() for item in self.items.all()])
-        self.subtotal = quantize_money(subtotal)
-        self.total = quantize_money(self.subtotal + self.shipping_cost + self.tax)
-        self.save()
+    # Check if price lock is active
+    def is_price_lock_active(self):
+        return self.price_locked_until and timezone.now() <= self.price_locked_until
 
 
-
+#  Order Item Model
 class OrderItem(models.Model):
-    # Link to the Order using a string reference to avoid circular imports
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, related_name='items')
 
-    product = models.ForeignKey('products.Product', on_delete=models.PROTECT, null=True, blank=True)
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+
+    product = models.ForeignKey(
+        "products.Product",
+        on_delete=models.PROTECT,
+        related_name="order_items"
+    )
+
+    # ---- Snapshot fields ----
     product_name = models.CharField(max_length=255)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    quantity = models.PositiveIntegerField()
+    line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Naira
-    quantity = models.PositiveIntegerField(default=1)
-
-    replace_product_sku = models.CharField(max_length=64, blank=True, null=True)
-    replace_notes = models.TextField(blank=True, null=True)
+    class Meta:
+        unique_together = ("order", "product")
+        indexes = [
+            models.Index(fields=["order"]),
+        ]
 
     def __str__(self):
-        return f"{self.quantity} x {self.product_name} for Order {self.order.order_number}"
-    
-    def get_subtotal(self):
-        return quantize_money(self.price * Decimal(self.quantity))
-
-
-
+        return f"{self.quantity} × {self.product_name}"
