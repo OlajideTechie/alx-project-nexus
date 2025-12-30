@@ -219,8 +219,10 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
 #  API Documentation Settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'SwiftCart E-Commerce Backend API Service',
-    'DESCRIPTION': 'E-commerce backend service with authentication, products, cart, orders, and payments',
+    'TITLE': 'SwiftCart E-Commerce Backend Service',
+    'DESCRIPTION': 'user authentication, product catalog, '
+    'cart management, order processing with price snapshotting and price-locking,'
+    'Paystack-integrated payments with safe retry handling.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': True,
     'COMPONENT_SPLIT': True,
