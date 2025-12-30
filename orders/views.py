@@ -48,7 +48,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        lock_duration = timedelta(minutes=1)
+        lock_duration = timedelta(minutes=15)
 
         # Create order within a transaction
         with transaction.atomic():
