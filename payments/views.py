@@ -28,10 +28,15 @@ class PaymentViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = PaymentSerializer
 
+    def get_serializer_class(self):
+        if self.action == "initiate":
+            return InitiatePaymentSerializer
+        return self.serializer_class
+
     @action(detail=False, methods=["post"])
     def initiate(self, request):
         # Validate request
-        serializer = InitiatePaymentSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         order_id = serializer.validated_data["order_id"]
@@ -166,7 +171,7 @@ def verify_paystack_payment(reference):
     data = resp.json()
     return data
 
-
+@extend_schema(tags=['Payments'])
 @api_view(["GET"])
 @permission_classes([AllowAny])  # Paystack will not send auth headers
 def paystack_callback(request):

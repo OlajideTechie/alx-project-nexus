@@ -11,8 +11,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             "amount",
             "reference",
             "status",
-            "authorization_url",
-            "gateway_response",
+            "provider",
+            "raw_response",
             "created_at",
         )
         read_only_fields = fields
