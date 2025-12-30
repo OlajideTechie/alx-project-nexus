@@ -24,6 +24,8 @@ class Payment(models.Model):
     transaction_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     raw_response = models.JSONField(null=True, blank=True)  # save gateway metadata here
 
+    reference = models.CharField(max_length=100, unique=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
