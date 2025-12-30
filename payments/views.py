@@ -36,7 +36,7 @@ class PaymentViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def initiate(self, request):
         # Validate request
-        serializer = self.get_serializer(data=request.data)
+        serializer = InitiatePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         order_id = serializer.validated_data["order_id"]
