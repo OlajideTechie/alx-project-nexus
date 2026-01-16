@@ -14,7 +14,6 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-
 @extend_schema(tags=['Orders'],)
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
