@@ -16,6 +16,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import dj_database_url 
 import os
+import sys
 
 load_dotenv()
 
@@ -311,3 +312,11 @@ CACHES = {
         }
     }
 }
+
+# Use in-memory cache for tests
+if "test" in sys.argv:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
