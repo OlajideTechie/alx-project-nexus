@@ -288,6 +288,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'products': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'upload': {
             'handlers': ['console', 'error_file'],
             'level': 'ERROR',
@@ -295,4 +300,14 @@ LOGGING = {
         },
         # Add other app loggers here
     },
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
 }
